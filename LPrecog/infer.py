@@ -171,10 +171,5 @@ if __name__ == '__main__':
     crnn_model_path = "./LPrecog/crnn.onnx"
     sess = ort.InferenceSession(crnn_model_path, providers=['CUDAExecutionProvider'])
 
-    # transformer = resizeNormalize((100, 32))
-    # image = Image.open(img_path).convert('L')
-    # image = transformer(image)
-    # image = image.view(1, *image.size())
-    # image = Variable(image)
     image = Variable(imgprocess(img_path))
     print(crnn_pred(sess, image, converter))

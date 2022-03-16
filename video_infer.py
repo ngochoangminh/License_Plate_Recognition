@@ -1,3 +1,4 @@
+from tkinter import Frame
 import cv2
 import time
 import numpy as np
@@ -6,9 +7,14 @@ from LPrecog.infer import resizeNormalize, strLabelConverter
 from demos import single_image_infer
 
 def video_infer(sess_wpod, sess_crnn, vid_path, converter):
-    videos = cv2.imread(vid_path)
+    cap = cv2.VideoCapture(vid_path)
+    while (cap.isOpened()):
+        res, frame = cap.read()
+        while res==True:
+            res = single_image_infer(sess_wpod, sess_crnn, frame, converter)
+            print(res)
 
-
+    cv2.destroyAllWindows()
 
 
     
