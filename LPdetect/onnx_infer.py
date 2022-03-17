@@ -65,9 +65,6 @@ def im2single(Image):
 def getWH(shape):
     return np.array(shape[1::-1]).astype(float)
 
-def getWH(shape):
-    return np.array(shape[1::-1]).astype(float)
-
 def IOU(tl1, br1, tl2, br2):
     wh1, wh2 = br1-tl1, br2-tl2
     assert((wh1 >= 0).all() and (wh2 >= 0).all())
@@ -121,11 +118,9 @@ def normal(pts, side, mn, MN):
     pts_prop = pts_MN / MN.reshape((2, 1))
     return pts_prop
 
-def img_process(img_path):
-    img_raw = cv2.imread(img_path)
-    img = img_raw.copy()
+def img_process(img):
     img = im2single(img)
-    return img_raw, img
+    return img
 
 def reconstruct(I, Iresized, Yr, lp_threshold):
     # 4 max-pooling layers, stride = 2
@@ -150,6 +145,9 @@ def reconstruct(I, Iresized, Yr, lp_threshold):
     labels = []
     labels_frontal = []
 
+    TLp = []
+    lp_types = []
+
     for i in range(len(xx)):
         x, y = xx[i], yy[i]
         affine = Affines[x, y]
@@ -165,36 +163,34 @@ def reconstruct(I, Iresized, Yr, lp_threshold):
         B = np.zeros((2, 3))
         B[0, 0] = max(A[0, 0], 0)
         B[1, 1] = max(A[1, 1], 0)
-        # print(A.shape,B.shape)
+    
         pts = np.array(A*base(vxx, vyy))
         pts_frontal = np.array(B*base(vxx, vyy))
-        # print(pts.shape,'\n',pts_frontal.shape)
+  
         pts_prop = normal(pts, side, mn, MN)
         frontal = normal(pts_frontal, side, mn, MN)
 
         labels.append(DLabel(0, pts_prop, prob))
         labels_frontal.append(DLabel(0, frontal, prob))
 
-    final_labels = nms(labels, 0.1)
-    final_labels_frontal = nms(labels_frontal, 0.1)
+        final_labels = nms(labels, 0.1)
+        final_labels_frontal = nms(labels_frontal, 0.1)
 
-    # print(final_labels_frontal)
+        # LP size and type
+        out_size, lp_type = (two_lines, 2) if ((final_labels_frontal[0].wh()[0] / final_labels_frontal[0].wh()[1]) < 1.7) else (one_line, 1)
+        lp_types.append(lp_type)
 
-    # LP size and type
-    out_size, lp_type = (two_lines, 2) if ((final_labels_frontal[0].wh()[0] / final_labels_frontal[0].wh()[1]) < 1.7) else (one_line, 1)
+        if len(final_labels):
+            final_labels.sort(key=lambda x: x.prob(), reverse=True)
+            for _, label in enumerate(final_labels):
+                t_ptsh = getRectPts(0, 0, out_size[0], out_size[1])
+                ptsh = np.concatenate((label.pts * getWH(I.shape).reshape((2, 1)), np.ones((1, 4))))
+                H = find_T_matrix(ptsh, t_ptsh)
 
-    TLp = []
-    if len(final_labels):
-        final_labels.sort(key=lambda x: x.prob(), reverse=True)
-        for _, label in enumerate(final_labels):
-            t_ptsh = getRectPts(0, 0, out_size[0], out_size[1])
-            ptsh = np.concatenate((label.pts * getWH(I.shape).reshape((2, 1)), np.ones((1, 4))))
-            H = find_T_matrix(ptsh, t_ptsh)
-
-            Ilp = cv2.warpPerspective(I, H, out_size, borderValue=0)
-            TLp.append(Ilp)
-    # print(out_size)
-    return final_labels, TLp, lp_type
+                Ilp = cv2.warpPerspective(I, H, out_size, borderValue=0)
+                TLp.append(Ilp)
+    
+    return TLp, lp_types
 
 def detect(model, I, max_dim, lp_threshold):
     
@@ -210,26 +206,28 @@ def detect(model, I, max_dim, lp_threshold):
     # t0 = time.time()
     Yr = model.run(None, {"input": T})
     Yr = np.squeeze(Yr)
-    L, TLp, lp_type = reconstruct(I, Iresized, Yr, lp_threshold)
+    TLp, lp_type = reconstruct(I, Iresized, Yr, lp_threshold)
     # print(time.time()-t0)
-    return L, TLp, lp_type
+    return TLp, lp_type
 
-def LP_detect(sess, src_path):
-    img_raw, img = img_process(src_path)
+def LP_detect(sess, img_raw):
+    img = img_raw.copy()
+    img = img = im2single(img)
     Dmax = 608
     Dmin = 288
     ratio = float(max(img_raw.shape[:2])) / min(img_raw.shape[:2])
     side = int(ratio * Dmin)
     bound_dim = min(side, Dmax)
-    _, TLp, lp_type = detect(sess, img, bound_dim, lp_threshold=0.5)
+    TLp, lp_type = detect(sess, img, bound_dim, lp_threshold=0.5)
     return TLp, lp_type
 
 if __name__=="__main__":
     src_path = "./image./test08.jpg"
     wpod_net_path = "./LPdetect/wpod.onnx"
+    img_raw = cv2.imread(src_path)
     sess = rt.InferenceSession(wpod_net_path)
     t0=time.time()
-    tlp ,lp_type = LP_detect(sess, src_path)
+    tlp ,lp_type = LP_detect(sess, img_raw)
     print(time.time()-t0)
     print(lp_type, '\n', type(tlp)) 
 

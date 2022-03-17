@@ -1,7 +1,10 @@
 numpy
 opencv-python
 torch
+torchvision
 tensorflow
+keras2onnx
 pillow
 torchvision
 collection
+onnxruntime-gpu
