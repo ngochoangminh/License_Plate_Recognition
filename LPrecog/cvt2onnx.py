@@ -1,3 +1,14 @@
+"""
+
+git clone https://github.com/meijieru/crnn.pytorch.git
+
+cd crnn.pytorch
+
+python cvt2onnx.py
+
+"""
+
+
 import torch
 import models.crnn as crnn
 
