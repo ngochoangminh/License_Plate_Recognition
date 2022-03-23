@@ -48,12 +48,11 @@ class BaseRecLabelDecode(object):
                     if idx > 0 and text_index[batch_idx][idx - 1] == text_index[
                             batch_idx][idx]:
                         continue
-                char_list.append(self.character[int(text_index[batch_idx][
-                    idx])])
-                if text_prob is not None:
-                    conf_list.append(text_prob[batch_idx][idx])
-                else:
-                    conf_list.append(1)
+                char_list.append(self.character[int(text_index[batch_idx][idx])])
+                # if text_prob is not None:
+                #     conf_list.append(text_prob[batch_idx][idx])
+                # else:
+                #     conf_list.append(1)
             text = ''.join(char_list)
             result_list.append((text, np.mean(conf_list)))
         return result_list
@@ -71,10 +70,10 @@ class CTCLabelDecode(BaseRecLabelDecode):
                                              use_space_char)
 
     def __call__(self, preds, label=None, *args, **kwargs):
-        if isinstance(preds, tuple):
-            preds = preds[-1]
-        if isinstance(preds, paddle.Tensor):
-            preds = preds.numpy()
+        # if isinstance(preds, tuple):
+        #     preds = preds[-1]
+        # if isinstance(preds, paddle.Tensor):
+        #     preds = preds.numpy()
         preds_idx = preds.argmax(axis=2)
         preds_prob = preds.max(axis=2)
         text = self.decode(preds_idx, preds_prob, is_remove_duplicate=True)
@@ -98,15 +97,16 @@ def img_process(img_path):
     return img
 
 img_path = '/home/ngoc/work/ai_acd/PaddleOCR/images/demo.jpg'
-onnx_model_path = './paddel_ocr.onnx'
+onnx_model_path = './paddleocr/paddel_ocr.onnx'
 print(img_path, onnx_model_path)
 
 
 img = img_process(img_path)
-sess = rt.InferenceSession(onnx_model_path)
+sess = rt.InferenceSession(onnx_model_path,providers=['CUDAExecutionProvider'])
 pred = sess.run(None, {"x": img})[0]
 preds_idx = pred.argmax(axis=2)
 preds_prob = pred.max(axis=2)
-# print(CTCLabelDecode(pred))
 
 print(preds_idx,"\n",preds_prob)
+
+print(CTCLabelDecode(pred))

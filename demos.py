@@ -5,7 +5,7 @@ import cv2
 # from PIL import Image
 import numpy as np
 from CarDetect.onnx_infer import detect_car
-from LPrecog.infer import resizeNormalize, strLabelConverter, crnn_pred
+from LPrecog.infer import strLabelConverter, crnn_pred
 from LPdetect.onnx_infer import LP_detect, img_process
 
 def imgprocess(img):
@@ -39,8 +39,9 @@ def single_image(sess_yolox, sess_wpod, sess_crnn, img_raw, converter):
     res = []
     dets = detect_car(sess_yolox, img_raw)
     for i in range(len(dets)):
-        lp = []
+        
         if int(dets[i][5]) == 2:
+            lp = []
             for j in range(4):
                 # print(int(dets[i][j]))
                 lp.append(int(dets[i][j]))
