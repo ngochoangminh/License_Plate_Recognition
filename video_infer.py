@@ -10,12 +10,13 @@ def video_infer(sess_yolox, sess_wpod, sess_crnn, vid_path, converter):
     cap = cv2.VideoCapture(vid_path)
     while (cap.isOpened()):
         res, frame = cap.read()
-        while res==True:
+        try:
             t0=time.time()
             # res = single_image_infer(sess_wpod, sess_crnn, frame, converter)
             res = single_image(sess_yolox, sess_wpod, sess_crnn, frame, converter)
             print('FPS: ', round(1/(time.time()-t0), 2), ' ----- Result: ',res)
-
+        except:
+            pass
     cv2.destroyAllWindows()
 
 
