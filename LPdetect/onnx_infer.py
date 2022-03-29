@@ -212,7 +212,7 @@ def detect(model, I, max_dim, lp_threshold):
 
 def LP_detect(sess, img_raw):
     img = img_raw.copy()
-    img = img = im2single(img)
+    img = im2single(img)
     Dmax = 608
     Dmin = 288
     ratio = float(max(img_raw.shape[:2])) / min(img_raw.shape[:2])
